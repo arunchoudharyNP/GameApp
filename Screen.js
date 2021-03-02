@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import {
+  Text,
+  TouchableOpacity,
+  View,
+  StyleSheet,
+  TouchableWithoutFeedback,
+} from "react-native";
 
 import Svg, { Line } from "react-native-svg";
 
@@ -9,29 +15,7 @@ const Screen = (props) => {
   const [size, setsize] = useState(0);
   const [stopTouch, setstopTouch] = useState(false);
 
-  let match;
-
   const change = useRef(touchCords.length);
-  const removeLast = () => {
-    change.current = touchCords.length;
-    pushLine((prev) =>
-      prev
-        .reverse()
-        .slice(0, prev.length - 1)
-        .reverse()
-    );
-    settouchCords((prev) => prev.reverse().slice(1).reverse());
-    setsize((prev) => prev - 1);
-  };
-
-  function getRandomColor() {
-    var letters = "0123456789ABCDEF";
-    var color = "#";
-    for (var i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  }
 
   useEffect(() => {
     if (touchCords.length > 1 && touchCords.length > change.current) {
@@ -44,8 +28,48 @@ const Screen = (props) => {
       ]);
       change.current = touchCords.length;
     }
+    console.log(touchCords);
   }, [touchCords]);
 
+  //.........Undo View
+  const undoElement = () => {
+    return (
+      <TouchableOpacity
+        style={styles.undo}
+        onPress={() => {
+          removeLast();
+        }}
+      >
+        <Text style={styles.text}>Undo</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  //..............Remove Last
+  const removeLast = () => {
+    setstopTouch(false);
+    change.current = touchCords.length;
+    pushLine((prev) =>
+      prev
+        .reverse()
+        .slice(0, prev.length - 1)
+        .reverse()
+    );
+    settouchCords((prev) => prev.reverse().slice(1).reverse());
+    setsize((prev) => prev - 1);
+  };
+
+  //.........RandomColor
+  function getRandomColor() {
+    var letters = "0123456789ABCDEF";
+    var color = "#";
+    for (var i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
+
+  //...........Render Line
   const renderLine = (prevTouch, CurrentTouch) => {
     return (
       <Svg
@@ -64,42 +88,43 @@ const Screen = (props) => {
     );
   };
 
+  // .............OnTouchEvent
   const onTouchPress = (event) => {
+    let ignore = false;
     change.current = touchCords.length;
     const touch = {
-      x: event.nativeEvent.locationX,
-      y: event.nativeEvent.locationY,
+      x: Math.ceil(event.nativeEvent.locationX),
+      y: Math.ceil(event.nativeEvent.locationY),
     };
 
-    settouchCords((prev) => [...prev, touch]);
-    setsize((prev) => prev + 1);
-    console.log(size);
-    console.log(touchCords);
+    console.log(".......");
+    console.log(Math.ceil(touch.x));
+    console.log(Math.ceil(touch.y));
+    console.log(".......");
+
+    touchCords.forEach((data) => {
+      if (
+        Math.ceil(event.nativeEvent.locationX) < 15 &&
+        Math.ceil(event.nativeEvent.locationY) < 15
+      ) {
+        ignore = true;
+        console.log("same");
+        return;
+      }
+    });
+
+    if (ignore) {
+    } else {
+      settouchCords((prev) => [...prev, touch]);
+    }
   };
 
-  return (
-    <View style={{ flex: 1 }}>
-      <TouchableOpacity
-        style={styles.undo}
-        onPress={() => {
-          removeLast();
-        }}
-      >
-        <Text style={styles.text}>Undo</Text>
-      </TouchableOpacity>
+  const mainScreen = () => {
+    return (
       <TouchableOpacity
         style={{ flex: 9 }}
         onPress={(event) => {
-          match = touchCords.find(
-            ({ x, y }) =>
-              x === event.nativeEvent.locationX &&
-              y === event.nativeEvent.locationY
-          );
-          setstopTouch(match);
-          console.log(match);
-          if (!match) {
-            onTouchPress(event);
-          }
+          !stopTouch && onTouchPress(event);
         }}
       >
         {line.length > 0 &&
@@ -108,30 +133,50 @@ const Screen = (props) => {
           })}
 
         {touchCords.length > 0 &&
-          touchCords.map((data) => {
+          touchCords.map((data, index) => {
             return (
-              <View key={data.x * Math.random()}>
-                <View
-                  style={{
-                    position: "absolute",
-                    left: data.x,
-                    top: data.y,
-                  }}
-                >
+              <TouchableWithoutFeedback
+                key={index}
+                onPress={() => {
+                  console.log(index);
+                  if (index == 0) {
+                    console.log("Clicked on 1st");
+                    setstopTouch(true);
+                    settouchCords((prev) => [...prev, touchCords[0]]);
+                    change.current = touchCords.length;
+                  }
+                }}
+              >
+                {
                   <View
                     style={{
-                      backgroundColor: "black",
-                      height: 15,
-                      width: 15,
-                      borderRadius: 10,
-                      transform: [{ translateX: -7.5 }],
+                      position: "absolute",
+                      left: touchCords[index].x,
+                      top: touchCords[index].y,
                     }}
-                  ></View>
-                </View>
-              </View>
+                  >
+                    <View
+                      style={{
+                        backgroundColor: "black",
+                        height: 14,
+                        width: 14,
+                        borderRadius: 10,
+                        transform: [{ translateX: -7.5 }],
+                      }}
+                    ></View>
+                  </View>
+                }
+              </TouchableWithoutFeedback>
             );
           })}
       </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      {undoElement()}
+      {mainScreen()}
     </View>
   );
 };

@@ -130,3 +130,32 @@ const renderLine = (prevTouch, CurrentTouch) => {
             );
           })} */
 }
+
+{
+  touchCords.length > 0 &&
+    touchCords.map((data, index) => {
+      return (
+        <View key={index}>
+          {
+            <View
+              style={{
+                position: "absolute",
+                left: data.x,
+                top: data.y,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: "black",
+                  height: 15,
+                  width: 15,
+                  borderRadius: 10,
+                  transform: [{ translateX: -7.5 }],
+                }}
+              ></View>
+            </View>
+          }
+        </View>
+      );
+    });
+}
